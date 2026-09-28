@@ -114,6 +114,17 @@ final class TrioModalAlertScheduler: ObservableObject {
         case dropStale
     }
 
+    static let quickSnoozeDuration: TimeInterval = 15 * 60
+
+    /// Critical alerts and urgent-low glucose alarms are limited to the
+    /// 15-minute quick snooze — the safety floor. Shared by the in-app banner
+    /// and the lock-screen notification actions so both surfaces agree.
+    static func isQuickSnoozeOnly(isCritical: Bool, alertIdentifier: String) -> Bool {
+        if isCritical { return true }
+        if GlucoseAlertType(slug: alertIdentifier) == .urgentLow { return true }
+        return false
+    }
+
     /// Pure decision for what a timer fire should do, given the alert's
     /// interruption level and the manager's current active/snooze state.
     /// - `dropStale`: alert no longer tracked — skip and drop pending.
@@ -202,15 +213,16 @@ struct TrioAlertBanner: View {
     @State private var presentedAt = Date()
     @State private var dragOffset: CGSize = .zero
 
-    private static let quickSnooze: TimeInterval = 15 * 60
+    private static let quickSnooze = TrioModalAlertScheduler.quickSnoozeDuration
 
     /// Critical alerts and urgent-low glucose alarms are limited to the
     /// 15-minute quick snooze — the safety floor. Other alerts get the full
     /// 15m / 1h / 3h / 6h menu.
     private var isQuickSnoozeOnly: Bool {
-        if alert.interruptionLevel == .critical { return true }
-        if GlucoseAlertType(slug: alert.identifier.alertIdentifier) == .urgentLow { return true }
-        return false
+        TrioModalAlertScheduler.isQuickSnoozeOnly(
+            isCritical: alert.interruptionLevel == .critical,
+            alertIdentifier: alert.identifier.alertIdentifier
+        )
     }
 
     private var content: LoopKit.Alert.Content? { alert.foregroundContent }

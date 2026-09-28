@@ -388,15 +388,46 @@ final class BaseTrioAlertManager: TrioAlertManager, Injectable {
         else { return }
         let identifier = Alert.Identifier(managerIdentifier: managerId, alertIdentifier: alertId)
 
-        // Swipe = 15-min snooze (mirrors the in-app banner's swipe-up).
-        // Tap and action buttons keep the full-ack path.
-        if response.actionIdentifier == UNNotificationDismissActionIdentifier {
-            modalScheduler.snooze(identifier: identifier, duration: 15 * 60)
+        switch Self.notificationResponseRoute(
+            actionIdentifier: response.actionIdentifier,
+            isCritical: response.notification.request.content.interruptionLevel == .critical,
+            alertIdentifier: alertId
+        ) {
+        case let .snooze(duration):
+            modalScheduler.snooze(identifier: identifier, duration: duration)
             userNotificationScheduler.unschedule(identifier: identifier)
-            return
+        case .acknowledge:
+            handleAcknowledgement(identifier: identifier)
         }
+    }
 
-        handleAcknowledgement(identifier: identifier)
+    enum NotificationResponseRoute: Equatable {
+        case snooze(TimeInterval)
+        case acknowledge
+    }
+
+    /// Swipe = 15-min snooze (mirrors the in-app banner's swipe-up). The
+    /// Snooze 15m / 1h / 3h / 6h action buttons snooze through the same
+    /// per-type routing as the banner menu, capped at 15 min for critical
+    /// and urgent-low alerts. A plain tap keeps the full-ack path.
+    /// Static so tests can exercise it without a `UNNotificationResponse`.
+    static func notificationResponseRoute(
+        actionIdentifier: String,
+        isCritical: Bool,
+        alertIdentifier: String
+    ) -> NotificationResponseRoute {
+        let requested: TimeInterval
+        if actionIdentifier == UNNotificationDismissActionIdentifier {
+            requested = TrioModalAlertScheduler.quickSnoozeDuration
+        } else if let action = NotificationResponseAction(rawValue: actionIdentifier) {
+            requested = action.duration
+        } else {
+            return .acknowledge
+        }
+        if TrioModalAlertScheduler.isQuickSnoozeOnly(isCritical: isCritical, alertIdentifier: alertIdentifier) {
+            return .snooze(min(requested, TrioModalAlertScheduler.quickSnoozeDuration))
+        }
+        return .snooze(requested)
     }
 
     func acknowledgeAllOutstanding() {

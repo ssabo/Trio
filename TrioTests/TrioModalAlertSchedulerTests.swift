@@ -1,6 +1,7 @@
 import Foundation
 import LoopKit
 import Testing
+import UserNotifications
 @testable import Trio
 
 @MainActor
@@ -156,6 +157,48 @@ import Testing
                 isAlertActive: true,
                 isSnoozeActive: false
             ) == .insert
+        )
+    }
+}
+
+@Suite("Trio Alerts: lock-screen notification response routing") struct NotificationResponseRouteTests {
+    private let lowSoonID = "glucose.forecastedLow.\(UUID().uuidString)"
+    private let urgentLowID = "glucose.urgentLow.\(UUID().uuidString)"
+
+    private func route(
+        _ actionIdentifier: String,
+        isCritical: Bool = false,
+        alertIdentifier: String
+    ) -> BaseTrioAlertManager.NotificationResponseRoute {
+        BaseTrioAlertManager.notificationResponseRoute(
+            actionIdentifier: actionIdentifier,
+            isCritical: isCritical,
+            alertIdentifier: alertIdentifier
+        )
+    }
+
+    @Test("Snooze action buttons snooze for their full duration") func snoozeButtonsSnooze() {
+        for action in NotificationResponseAction.allCases {
+            #expect(route(action.rawValue, alertIdentifier: lowSoonID) == .snooze(action.duration))
+        }
+    }
+
+    @Test("Swipe-away is a 15-minute snooze") func swipeIsQuickSnooze() {
+        #expect(route(UNNotificationDismissActionIdentifier, alertIdentifier: lowSoonID) == .snooze(15 * 60))
+    }
+
+    @Test("Tapping the notification acknowledges") func tapAcknowledges() {
+        #expect(route(UNNotificationDefaultActionIdentifier, alertIdentifier: lowSoonID) == .acknowledge)
+    }
+
+    @Test("Urgent low is capped at the 15-minute snooze") func urgentLowCapped() {
+        #expect(route(NotificationResponseAction.snooze6hr.rawValue, alertIdentifier: urgentLowID) == .snooze(15 * 60))
+    }
+
+    @Test("Critical alerts are capped at the 15-minute snooze") func criticalCapped() {
+        #expect(
+            route(NotificationResponseAction.snooze1hr.rawValue, isCritical: true, alertIdentifier: "pump.occlusion")
+                == .snooze(15 * 60)
         )
     }
 }
