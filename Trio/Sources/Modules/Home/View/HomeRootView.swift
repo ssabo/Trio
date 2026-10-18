@@ -318,6 +318,9 @@ extension Home {
                         completionDelegate: state,
                         setupDelegate: state
                     )
+                    // a UIKit nav stack: it insets itself, and the sheet's
+                    // bottom inset can carry the tab bar's height
+                    .ignoresSafeArea()
                 } else if let pumpEntry = state.setupPumpEntry {
                     PumpConfig.PumpSetupView(
                         pumpEntry: pumpEntry,
@@ -326,6 +329,9 @@ extension Home {
                         completionDelegate: state,
                         setupDelegate: state
                     )
+                    // a UIKit nav stack: it insets itself, and the sheet's
+                    // bottom inset can carry the tab bar's height
+                    .ignoresSafeArea()
                 }
             }
             // CGM RELATED

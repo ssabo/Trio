@@ -93,6 +93,9 @@ extension PumpConfig {
                         completionDelegate: state,
                         setupDelegate: state
                     )
+                    // a UIKit nav stack: it insets itself, and the sheet's
+                    // bottom inset can carry the tab bar's height
+                    .ignoresSafeArea()
                 } else if let pumpEntry = state.setupPumpEntry {
                     PumpSetupView(
                         pumpEntry: pumpEntry,
@@ -101,6 +104,9 @@ extension PumpConfig {
                         completionDelegate: state,
                         setupDelegate: state
                     )
+                    // a UIKit nav stack: it insets itself, and the sheet's
+                    // bottom inset can carry the tab bar's height
+                    .ignoresSafeArea()
                 }
             }
             .sheet(isPresented: $shouldDisplayHint) {
