@@ -26,6 +26,7 @@ struct PumpDisplayState {
 protocol PumpConfigProvider: Provider {
     func setPumpManager(_: PumpManagerUI)
     var pumpDisplayState: AnyPublisher<PumpDisplayState?, Never> { get }
+    var isOmnipodConnected: Bool { get }
     func pumpSettings() -> PumpSettings
     func getBasalProfile() async -> [BasalProfileEntry]
 }

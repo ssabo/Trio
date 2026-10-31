@@ -174,6 +174,19 @@ extension SettingsExport {
                         name: String(localized: "Insulin Type"),
                         value: insulinTypeValue
                     )
+                    if trioSettings.useOmnipodReservoirFillAmount {
+                        addSetting(
+                            category: devicesCategory,
+                            name: String(localized: "Approximate Reservoir"),
+                            value: String(localized: "Enabled")
+                        )
+                        addSetting(
+                            category: devicesCategory,
+                            name: String(localized: "Pod Fill Amount"),
+                            value: String(describing: trioSettings.omnipodReservoirFillAmount),
+                            unit: "U"
+                        )
+                    }
                 } else {
                     addSetting(
                         category: devicesCategory,

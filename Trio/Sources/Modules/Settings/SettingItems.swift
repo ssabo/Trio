@@ -65,7 +65,13 @@ enum SettingItems {
     ]
 
     static let devicesItems = [
-        SettingItem(title: "Insulin Pump", view: .pumpConfig, path: ["Devices"]),
+        SettingItem(
+            title: "Insulin Pump",
+            view: .pumpConfig,
+            searchContents: ["Approximate Reservoir", "Pod Fill Amount"],
+            scrollTargetLabels: ["Pod Fill Amount": "Approximate Reservoir"],
+            path: ["Devices"]
+        ),
         SettingItem(
             title: "CGM",
             view: .cgm,

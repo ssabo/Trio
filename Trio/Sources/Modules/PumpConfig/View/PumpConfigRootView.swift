@@ -14,6 +14,7 @@ extension PumpConfig {
         @State private var decimalPlaceholder: Decimal = 0.0
         @State private var booleanPlaceholder: Bool = false
         @State var showPumpSelection: Bool = false
+        @State private var shouldDisplaySettingHint: Bool = false
         @State private var pendingPump: PumpCatalogEntry?
 
         @Environment(\.colorScheme) var colorScheme
@@ -81,6 +82,42 @@ extension PumpConfig {
                     }
                 ).listRowBackground(Color.chart)
 
+                if state.isOmnipodConnected {
+                    SettingInputSection(
+                        decimalValue: $state.omnipodReservoirFillAmount,
+                        booleanValue: $state.useOmnipodReservoirFillAmount,
+                        shouldDisplayHint: $shouldDisplaySettingHint,
+                        selectedVerboseHint: Binding(
+                            get: { selectedVerboseHint },
+                            set: {
+                                selectedVerboseHint = $0.map { AnyView($0) }
+                                hintLabel = String(localized: "Approximate Reservoir")
+                            }
+                        ),
+                        units: state.units,
+                        type: .conditionalDecimal("omnipodReservoirFillAmount"),
+                        label: String(localized: "Approximate Reservoir"),
+                        conditionalLabel: String(localized: "Pod Fill Amount"),
+                        miniHint: String(localized: "Show an approximate amount instead of 50+ U."),
+                        verboseHint: VStack(alignment: .leading, spacing: 10) {
+                            Text("Default: OFF").bold()
+                            Text("Default Fill Amount: 200 U").bold()
+                            Text(
+                                "A pod only measures its reservoir once 50 U or less remain. Until then, it reports 50+ U."
+                            )
+                            Text(
+                                "When enabled, Trio subtracts the insulin the pod has used since activation, including priming and cannula insertion, from your fill amount. The home screen then shows the result with a tilde, for example ~145 U."
+                            )
+                            Text(
+                                "Once the pod measures 50 U or less, Trio always shows the pod's own reading."
+                            )
+                            Text(
+                                "Set this to the amount you fill each new pod with. The approximation is only as accurate as that amount. It is for display only: dosing, alerts and Nightscout still use the pod's reading."
+                            )
+                        }
+                    )
+                }
+
                 if state.pumpState != nil, state.provider?.apsManager?.pumpManager != nil {
                     Section {
                         LogShareRow(
@@ -96,6 +133,7 @@ extension PumpConfig {
             .onAppear(perform: configureView)
             .navigationBarTitleDisplayMode(.automatic)
             .navigationTitle("Insulin Pump")
+            .settingsHighlightScroll()
             .sheet(isPresented: $state.setupPump) {
                 if let pumpManager = state.provider.apsManager.pumpManager {
                     PumpSettingsView(
@@ -113,6 +151,15 @@ extension PumpConfig {
                         setupDelegate: state
                     )
                 }
+            }
+            .sheet(isPresented: $shouldDisplaySettingHint) {
+                SettingInputHintView(
+                    hintDetent: $hintDetent,
+                    shouldDisplayHint: $shouldDisplaySettingHint,
+                    hintLabel: hintLabel ?? "",
+                    hintText: selectedVerboseHint ?? AnyView(EmptyView()),
+                    sheetTitle: String(localized: "Help", comment: "Help sheet title")
+                )
             }
             .sheet(isPresented: $shouldDisplayHint) {
                 SettingInputHintView(
