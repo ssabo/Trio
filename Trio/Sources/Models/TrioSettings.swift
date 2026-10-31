@@ -75,6 +75,10 @@ struct TrioSettings: JSON, Equatable, Encodable {
     var homeStatsPanelFace: HomeStatsPanelFace = .timeInRange
     var homeStatsPanelRange: HomeStatsPanelRange = .today
     var requireAdjustmentsConfirmation: Bool = false
+    /// Show an approximate Omnipod reservoir level, from the fill amount below, while the pod reads 50+ U
+    var useOmnipodReservoirFillAmount: Bool = false
+    /// Units the user fills each pod with
+    var omnipodReservoirFillAmount: Decimal = 200
 
     /// Selected Garmin watchface (Trio or SwissAlpine)
     var garminWatchface: GarminWatchface = .trio
@@ -375,6 +379,14 @@ extension TrioSettings: Decodable {
 
         if let requireAdjustmentsConfirmation = try? container.decode(Bool.self, forKey: .requireAdjustmentsConfirmation) {
             settings.requireAdjustmentsConfirmation = requireAdjustmentsConfirmation
+        }
+
+        if let useOmnipodReservoirFillAmount = try? container.decode(Bool.self, forKey: .useOmnipodReservoirFillAmount) {
+            settings.useOmnipodReservoirFillAmount = useOmnipodReservoirFillAmount
+        }
+
+        if let omnipodReservoirFillAmount = try? container.decode(Decimal.self, forKey: .omnipodReservoirFillAmount) {
+            settings.omnipodReservoirFillAmount = omnipodReservoirFillAmount
         }
 
         if let garminWatchface = try? container.decode(GarminWatchface.self, forKey: .garminWatchface) {

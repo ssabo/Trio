@@ -9,14 +9,28 @@ extension PumpConfig {
         @Published var setupPump = false
         private(set) var setupPumpEntry: PumpCatalogEntry?
         @Published var pumpState: PumpDisplayState?
+        @Published var isOmnipodConnected = false
+        @Published var useOmnipodReservoirFillAmount = false
+        @Published var omnipodReservoirFillAmount: Decimal = 200
+        @Published var units: GlucoseUnits = .mgdL
         private(set) var initialSettings: PumpInitialSettings = .default
         @Injected() var bluetoothManager: BluetoothStateManager!
         @Injected() var logExport: LogExport!
 
         override func subscribe() {
+            units = settingsManager.settings.units
+            subscribeSetting(\.useOmnipodReservoirFillAmount, on: $useOmnipodReservoirFillAmount) {
+                useOmnipodReservoirFillAmount = $0 }
+            subscribeSetting(\.omnipodReservoirFillAmount, on: $omnipodReservoirFillAmount) {
+                omnipodReservoirFillAmount = $0 }
+
             provider.pumpDisplayState
                 .receive(on: DispatchQueue.main)
-                .assign(to: \.pumpState, on: self)
+                .sink { [weak self] pumpState in
+                    guard let self = self else { return }
+                    self.pumpState = pumpState
+                    self.isOmnipodConnected = pumpState != nil && self.provider.isOmnipodConnected
+                }
                 .store(in: &lifetime)
             Task {
                 let basalSchedule = BasalRateSchedule(

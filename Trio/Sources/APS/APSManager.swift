@@ -24,6 +24,7 @@ protocol APSManager {
     var bolusProgress: CurrentValueSubject<Decimal?, Never> { get }
     var pumpExpiresAtDate: CurrentValueSubject<Date?, Never> { get }
     var pumpActivatedAtDate: CurrentValueSubject<Date?, Never> { get }
+    var approximateReservoir: CurrentValueSubject<Decimal?, Never> { get }
     var isManualTempBasal: Bool { get }
     var isScheduledBasal: Bool? { get }
     var isSuspended: Bool { get }
@@ -187,6 +188,10 @@ final class BaseAPSManager: APSManager, Injectable {
 
     var pumpActivatedAtDate: CurrentValueSubject<Date?, Never> {
         deviceDataManager.pumpActivatedAtDate
+    }
+
+    var approximateReservoir: CurrentValueSubject<Decimal?, Never> {
+        deviceDataManager.approximateReservoir
     }
 
     var settings: TrioSettings {

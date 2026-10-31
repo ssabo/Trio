@@ -27,6 +27,9 @@ protocol DeviceDataManager {
     var pumpName: CurrentValueSubject<String, Never> { get }
     var pumpExpiresAtDate: CurrentValueSubject<Date?, Never> { get }
     var pumpActivatedAtDate: CurrentValueSubject<Date?, Never> { get }
+    /// Approximate Omnipod reservoir level while the pod reads 50+ U, from the user's fill amount.
+    /// Nil when no fill amount is set or the pod's own reading applies.
+    var approximateReservoir: CurrentValueSubject<Decimal?, Never> { get }
 
     func heartbeat(date: Date)
     func updatePumpBLEHeartbeat(lastCGMReadingDate: Date?, expectedCGMReadingInterval: TimeInterval?)
@@ -72,6 +75,8 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
 
     var pumpManager: PumpManagerUI? {
         didSet {
+            processQueue.async { self.updateApproximateReservoir() }
+
             if let oldValue = oldValue {
                 trioAlertManager?.unregister(managerIdentifier: oldValue.pluginIdentifier)
             }
@@ -222,10 +227,12 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
     let pumpExpiresAtDate = CurrentValueSubject<Date?, Never>(nil)
     let pumpActivatedAtDate = CurrentValueSubject<Date?, Never>(nil)
     let pumpName = CurrentValueSubject<String, Never>("Pump")
+    let approximateReservoir = CurrentValueSubject<Decimal?, Never>(nil)
 
     init(resolver: Resolver) {
         self.resolver = resolver
         injectServices(resolver)
+        broadcaster.register(SettingsObserver.self, observer: self)
         setupPumpManager()
         UIDevice.current.isBatteryMonitoringEnabled = true
 
@@ -239,6 +246,23 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
                     expectedCGMReadingInterval: self.lastPumpHeartbeatRequest?.expectedCGMReadingInterval
                 )
             }
+    }
+
+    /// Recomputes `approximateReservoir` from the current pod state and the fill amount setting.
+    private func updateApproximateReservoir() {
+        var estimate: Decimal?
+        if let omni = pumpManager as? OmniPumpManager {
+            let settings = settingsManager.settings
+            let podState = omni.state.podState
+            estimate = OmnipodReservoirEstimate.approximateUnitsRemaining(
+                fillAmount: settings.useOmnipodReservoirFillAmount ? settings.omnipodReservoirFillAmount : nil,
+                podReservoirLevel: podState?.lastInsulinMeasurements?.reservoirLevel,
+                insulinDispensed: podState?.totalInsulinDispensed
+            )
+        }
+        guard estimate != approximateReservoir.value else { return }
+        debug(.pump, "Approximate reservoir: \(estimate.map { "~\($0) U" } ?? "none")")
+        approximateReservoir.send(estimate)
     }
 
     func setupPumpManager() {
@@ -380,6 +404,8 @@ extension BaseDeviceDataManager: PumpManagerDelegate {
             self.pumpManager = newPumpManager
         }
         pumpName.send(pumpManager.localizedTitle)
+        // pod delivery reaches Trio as a state update, which is not always a status update
+        updateApproximateReservoir()
     }
 
     /// heartbeat with pump occurs some issues in the backgroundtask - so never used
@@ -678,6 +704,12 @@ extension BaseDeviceDataManager: DeviceManagerDelegate {
             message: message,
             completion: completion
         )
+    }
+}
+
+extension BaseDeviceDataManager: SettingsObserver {
+    func settingsDidChange(_: TrioSettings) {
+        processQueue.async { self.updateApproximateReservoir() }
     }
 }
 

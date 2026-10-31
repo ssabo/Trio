@@ -1,5 +1,6 @@
 import Combine
 import LoopKitUI
+import OmnipodKit
 import RileyLinkBLEKit
 
 extension PumpConfig {
@@ -12,6 +13,10 @@ extension PumpConfig {
 
         var pumpDisplayState: AnyPublisher<PumpDisplayState?, Never> {
             apsManager.pumpDisplayState.eraseToAnyPublisher()
+        }
+
+        var isOmnipodConnected: Bool {
+            apsManager.pumpManager is OmniPumpManager
         }
 
         func getBasalProfile() async -> [BasalProfileEntry] {

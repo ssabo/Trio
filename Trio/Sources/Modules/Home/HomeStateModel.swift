@@ -59,6 +59,8 @@ extension Home {
         var lastLoopDate: Date = .distantPast
         var battery: Battery?
         var reservoir: Decimal?
+        /// Approximate Omnipod reservoir level while the pod reads 50+ U, nil when not in use
+        var approximateReservoir: Decimal?
         var pumpName = ""
         var pumpExpiresAtDate: Date?
         var pumpActivatedAtDate: Date?
@@ -658,6 +660,11 @@ extension Home {
             apsManager.pumpActivatedAtDate
                 .receive(on: DispatchQueue.main)
                 .weakAssign(to: \.pumpActivatedAtDate, on: self)
+                .store(in: &lifetime)
+
+            apsManager.approximateReservoir
+                .receive(on: DispatchQueue.main)
+                .weakAssign(to: \.approximateReservoir, on: self)
                 .store(in: &lifetime)
 
             apsManager.lastError
