@@ -27,7 +27,7 @@ protocol DeviceDataManager {
     var pumpName: CurrentValueSubject<String, Never> { get }
     var pumpExpiresAtDate: CurrentValueSubject<Date?, Never> { get }
     var pumpActivatedAtDate: CurrentValueSubject<Date?, Never> { get }
-    /// Approximate Omnipod reservoir level while the pod reads 50+ U, from the user's fill amount.
+    /// Approximate Omnipod reservoir level while the pod reads 50+ U, from the pod fill amount set in OmnipodKit.
     /// Nil when no fill amount is set or the pod's own reading applies.
     var approximateReservoir: CurrentValueSubject<Decimal?, Never> { get }
 
@@ -232,7 +232,6 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
     init(resolver: Resolver) {
         self.resolver = resolver
         injectServices(resolver)
-        broadcaster.register(SettingsObserver.self, observer: self)
         setupPumpManager()
         UIDevice.current.isBatteryMonitoringEnabled = true
 
@@ -248,18 +247,10 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
             }
     }
 
-    /// Recomputes `approximateReservoir` from the current pod state and the fill amount setting.
+    /// Republishes OmnipodKit's approximate reservoir level. It is display only, so it is kept out of
+    /// `OpenAPS.Monitor.reservoir`, which oref and the Nightscout upload read.
     private func updateApproximateReservoir() {
-        var estimate: Decimal?
-        if let omni = pumpManager as? OmniPumpManager {
-            let settings = settingsManager.settings
-            let podState = omni.state.podState
-            estimate = OmnipodReservoirEstimate.approximateUnitsRemaining(
-                fillAmount: settings.useOmnipodReservoirFillAmount ? settings.omnipodReservoirFillAmount : nil,
-                podReservoirLevel: podState?.lastInsulinMeasurements?.reservoirLevel,
-                insulinDispensed: podState?.totalInsulinDispensed
-            )
-        }
+        let estimate = (pumpManager as? OmniPumpManager)?.approximateReservoirLevel.map { Decimal($0) }
         guard estimate != approximateReservoir.value else { return }
         debug(.pump, "Approximate reservoir: \(estimate.map { "~\($0) U" } ?? "none")")
         approximateReservoir.send(estimate)
@@ -404,7 +395,7 @@ extension BaseDeviceDataManager: PumpManagerDelegate {
             self.pumpManager = newPumpManager
         }
         pumpName.send(pumpManager.localizedTitle)
-        // pod delivery reaches Trio as a state update, which is not always a status update
+        // pod delivery and fill amount changes reach Trio as state updates, not always as status updates
         updateApproximateReservoir()
     }
 
@@ -704,12 +695,6 @@ extension BaseDeviceDataManager: DeviceManagerDelegate {
             message: message,
             completion: completion
         )
-    }
-}
-
-extension BaseDeviceDataManager: SettingsObserver {
-    func settingsDidChange(_: TrioSettings) {
-        processQueue.async { self.updateApproximateReservoir() }
     }
 }
 
