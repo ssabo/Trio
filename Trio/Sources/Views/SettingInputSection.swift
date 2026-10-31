@@ -174,6 +174,8 @@ struct SettingInputSection<VerboseHint: View>: View {
             return pickerSettingsProvider.settings.maxBolus
         case "maxBasal":
             return pickerSettingsProvider.settings.maxBasal
+        case "omnipodReservoirFillAmount":
+            return pickerSettingsProvider.settings.omnipodReservoirFillAmount
         default:
             return nil
         }

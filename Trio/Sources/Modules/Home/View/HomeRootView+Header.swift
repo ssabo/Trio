@@ -111,6 +111,7 @@ extension Home.RootView {
     var pumpView: some View {
         PumpView(
             reservoir: state.reservoir,
+            approximateReservoir: state.approximateReservoir,
             name: state.pumpName,
             expiresAtDate: state.pumpExpiresAtDate,
             activatedAtDate: state.pumpActivatedAtDate,
