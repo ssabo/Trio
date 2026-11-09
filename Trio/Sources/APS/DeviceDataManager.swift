@@ -28,6 +28,9 @@ protocol DeviceDataManager {
     var pumpName: CurrentValueSubject<String, Never> { get }
     var pumpExpiresAtDate: CurrentValueSubject<Date?, Never> { get }
     var pumpActivatedAtDate: CurrentValueSubject<Date?, Never> { get }
+    /// Approximate Omnipod reservoir level while the pod reads 50+ U, from the pod fill amount set in OmnipodKit.
+    /// Nil when no fill amount is set or the pod's own reading applies.
+    var approximateReservoir: CurrentValueSubject<Decimal?, Never> { get }
 
     func heartbeat(date: Date)
     func updatePumpBLEHeartbeat(lastCGMReadingDate: Date?, expectedCGMReadingInterval: TimeInterval?)
@@ -74,6 +77,8 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
 
     var pumpManager: PumpManagerUI? {
         didSet {
+            processQueue.async { self.updateApproximateReservoir() }
+
             if let oldValue = oldValue {
                 trioAlertManager?.unregister(managerIdentifier: oldValue.pluginIdentifier)
             }
@@ -223,6 +228,7 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
     let pumpExpiresAtDate = CurrentValueSubject<Date?, Never>(nil)
     let pumpActivatedAtDate = CurrentValueSubject<Date?, Never>(nil)
     let pumpName = CurrentValueSubject<String, Never>("Pump")
+    let approximateReservoir = CurrentValueSubject<Decimal?, Never>(nil)
 
     init(resolver: Resolver) {
         self.resolver = resolver
@@ -245,6 +251,15 @@ final class BaseDeviceDataManager: DeviceDataManager, Injectable {
 
     private func removeLegacyReservoirFile() { // FIXME: this can be removed in later releases
         storage.remove(Self.legacyReservoirFile)
+    }
+
+    /// Republishes OmnipodKit's approximate reservoir level. It is display only, so it is kept out of
+    /// `currentReservoir`, which the Nightscout upload reads.
+    private func updateApproximateReservoir() {
+        let estimate = (pumpManager as? OmniPumpManager)?.approximateReservoirLevel.map { Decimal($0) }
+        guard estimate != approximateReservoir.value else { return }
+        debug(.pump, "Approximate reservoir: \(estimate.map { "~\($0) U" } ?? "none")")
+        approximateReservoir.send(estimate)
     }
 
     func setupPumpManager() {
@@ -389,6 +404,8 @@ extension BaseDeviceDataManager: PumpManagerDelegate {
             self.pumpManager = newPumpManager
         }
         pumpName.send(pumpManager.localizedTitle)
+        // pod delivery and fill amount changes reach Trio as state updates, not always as status updates
+        updateApproximateReservoir()
     }
 
     /// heartbeat with pump occurs some issues in the backgroundtask - so never used

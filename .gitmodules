@@ -40,8 +40,8 @@
 	branch = trio-next-dev
 [submodule "OmnipodKit"]
 	path = OmnipodKit
-	url = https://github.com/loopandlearn/OmnipodKit
-	branch = next-dev
+	url = https://github.com/ssabo/omnipodkit
+	branch = feat/approximate-reservoir
 [submodule "AccuChekKit"]
 	path = AccuChekKit
 	url = https://github.com/loopandlearn/AccuChekKit

@@ -3,6 +3,8 @@ import SwiftUI
 
 struct PumpView: View {
     let reservoir: Decimal?
+    /// Approximate Omnipod reservoir level, shown in place of 50+ U
+    let approximateReservoir: Decimal?
     let name: String
     let expiresAtDate: Date?
     let activatedAtDate: Date?
@@ -12,6 +14,11 @@ struct PumpView: View {
     @Environment(\.colorScheme) var colorScheme
 
     let NORMAL_PATCH_AGE = TimeInterval.hours(80)
+
+    /// The approximation only ever replaces 50+ U: a measured pod reading always wins.
+    private var shownApproximateReservoir: Decimal? {
+        reservoir == 0xDEAD_BEEF ? approximateReservoir : nil
+    }
 
     private var hourglassIcon: String {
         if activatedAtDate != nil { return "hourglass.badge.plus" }
@@ -62,7 +69,16 @@ struct PumpView: View {
                         Image(systemName: "cross.vial.fill")
                             .font(.callout)
 
-                        if reservoir == 0xDEAD_BEEF {
+                        if let approximateReservoir = shownApproximateReservoir {
+                            // "~" marks the amount as an approximation from the pod fill amount
+                            Text(
+                                "~" + (Formatter.integerFormatter.string(from: approximateReservoir as NSNumber) ?? "") +
+                                    String(localized: " U", comment: "Insulin unit")
+                            )
+                            .font(.callout)
+                            .fontWeight(.bold)
+                            .fontDesign(.rounded)
+                        } else if reservoir == 0xDEAD_BEEF {
                             Text("50+ " + String(localized: "U", comment: "Insulin unit"))
                                 .font(.callout)
                                 .fontWeight(.bold)
@@ -194,10 +210,22 @@ struct PumpView: View {
     /// Reservoir amount plus a spoken severity word, so the color-coded low state is not lost.
     private var reservoirAccessibilityValue: String {
         guard let reservoir = reservoir else { return "" }
-        let amount = reservoir == 0xDEAD_BEEF
-            ? "50+ " + String(localized: "U", comment: "Insulin unit")
-            : (Formatter.integerFormatter.string(from: reservoir as NSNumber) ?? "0")
-            + " " + String(localized: "U", comment: "Insulin unit")
+        let amount: String
+        if let approximateReservoir = shownApproximateReservoir {
+            amount = String(
+                format: String(
+                    localized: "approximately %@",
+                    comment: "Accessibility: estimated pod reservoir level, e.g. approximately 195 U"
+                ),
+                (Formatter.integerFormatter.string(from: approximateReservoir as NSNumber) ?? "0")
+                    + " " + String(localized: "U", comment: "Insulin unit")
+            )
+        } else if reservoir == 0xDEAD_BEEF {
+            amount = "50+ " + String(localized: "U", comment: "Insulin unit")
+        } else {
+            amount = (Formatter.integerFormatter.string(from: reservoir as NSNumber) ?? "0")
+                + " " + String(localized: "U", comment: "Insulin unit")
+        }
         switch reservoir {
         case ...10:
             return amount + ", " + String(localized: "low", comment: "Accessibility: reservoir severity")
