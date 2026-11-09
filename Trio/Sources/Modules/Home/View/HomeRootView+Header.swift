@@ -174,7 +174,7 @@ extension Home.RootView {
                         .font(.callout)
                         .fontWeight(.bold)
 
-                    Text(state.units == .mgdL ? eventualGlucose.description : eventualGlucose.formattedAsMmolL)
+                    Text(eventualGlucose.formatted(for: state.units))
                         .font(.callout)
                         .fontWeight(.bold)
                         .fontDesign(.rounded)
@@ -182,7 +182,7 @@ extension Home.RootView {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text("Eventual glucose"))
                 .accessibilityValue(Text(
-                    (state.units == .mgdL ? eventualGlucose.description : eventualGlucose.formattedAsMmolL)
+                    eventualGlucose.formatted(for: state.units)
                         + " " + state.units.spokenValue
                 ))
             } else {
