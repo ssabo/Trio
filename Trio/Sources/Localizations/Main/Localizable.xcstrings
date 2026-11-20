@@ -51559,6 +51559,9 @@
         }
       }
     },
+    "approximately %@" : {
+      "comment" : "Accessibility: estimated pod reservoir level, e.g. approximately 195 U"
+    },
     "Are you sure you want to delete %@?" : {
       "localizations" : {
         "bg" : {
