@@ -41,7 +41,7 @@
 [submodule "OmnipodKit"]
 	path = OmnipodKit
 	url = https://github.com/ssabo/omnipodkit
-	branch = feat/approximate-reservoir
+	branch = feat/approximate-reservoir-next-dev
 [submodule "AccuChekKit"]
 	path = AccuChekKit
 	url = https://github.com/loopandlearn/AccuChekKit
