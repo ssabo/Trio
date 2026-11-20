@@ -6,6 +6,8 @@
 - This file exists only on `my-dev`. Keep it out of patch branches.
 - Submodule patches are tracked here too. Their repos have no copy of this file.
 
+**Overview:** [ssabo/Trio#5](https://github.com/ssabo/Trio/pull/5) is a draft PR of `my-dev` against `dev`, labeled `do not merge`. It's only there to view the full diff in one place.
+
 **Last synced with `dev`:** 2026-11-20, nightscout/Trio `dev` at `d37fe347e` (APP_DEV_VERSION 1.0.2.79)
 
 ## Applied patches
