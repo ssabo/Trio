@@ -94,6 +94,16 @@ git revert -m 1 <the "Patch: ..." merge commit>
 
 To bring it back later, revert that revert. Merging the branch again won't reapply the changes git already considers merged.
 
+## Xcode Cloud builds
+
+`my-dev` is built in Xcode Cloud and uploaded to internal TestFlight, replacing the GitHub Actions browser build. Full runbook: [docs/XCODE_CLOUD.md](docs/XCODE_CLOUD.md). Recon notes: [docs/xcode-cloud-recon.md](docs/xcode-cloud-recon.md).
+
+- **What's on `my-dev` for it:** `ci_scripts/` (post-clone, pre-xcodebuild, post-xcodebuild and a helper) and the two docs. No app or submodule source changes. Like this file, these exist only on `my-dev`, so keep them out of patch branches.
+- **Signing:** Apple-managed automatic signing. The scripts generate the gitignored `ConfigOverride.xcconfig` from Xcode Cloud's `CI_TEAM_ID`, so no team ID or secret is committed.
+- **Workflow:** `Trio TestFlight`, branch `my-dev`, manual start (a schedule comes later), archive → TestFlight internal group.
+- **Updating:** after the merge steps above, push `my-dev`, then start the workflow in Xcode (Report navigator → Cloud). Keep TestFlight auto-updates off on the phone, so I choose when a new build gets installed.
+- **Fallback:** the GitHub Actions browser build and its secrets stay untouched until two Xcode Cloud builds have worked.
+
 ## Local setup notes
 
 - `origin` is `ssabo/Trio`, and `upstream` is `nightscout/Trio`. Inside `OmnipodKit`, `origin` is loopandlearn and `ssabo` is my fork.
